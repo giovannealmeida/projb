@@ -51,25 +51,6 @@ int main()
     carregaProd();
     while(pegaEntrada())
 		iniciaAutomato();
-    
-    /*
-    while(op == -1){
-    	mostraMenu();
-	    switch(op){
-	    	case 1:
-	    		flag_escrevendo = 1;
-	    		carregaAmostras();
-	    		break;
-	    	case 2:
-	    		flag_escrevendo = 0;
-	    		while(pegaEntrada())
-	    			iniciaAutomato();
-		    	break;
-	    	default:
-	    		printf("Opção inválida!\n");
-		}
-	}
-	*/
 
     return 0;
 }
@@ -83,8 +64,8 @@ int carregaProd(){
 char inicializaProd(){
 	char naoTermS,ch,auxString[PILHA_TAM];
 	int i,j=0;
-	rewind(prod); //Volta o ponteiro para o início do arquivo
-	naoTermS = fgetc(prod); //Pega o primeiro caractere do arquivo, supostamente o não terminal inicial
+	rewind(prod); //Volta o ponteiro para o início do arquivo (colocado aqui porque essa função é chamada toda vez que uma cadeia de entrada é analisada)
+	naoTermS = fgetc(prod); //Pega o primeiro caractere do arquivo, supostamente o não-terminal inicial
 	rewind(prod); //Volta o ponteiro para o início do arquivo
 	
 	for(i=0;(ch=fgetc(prod)) != EOF;i++){
@@ -92,9 +73,7 @@ char inicializaProd(){
 			fscanf(prod,"%s ",auxString);
 			strcpy(S[i],auxString);
 		} else {
-			printf("ch = %c\n",ch);
 			if(!flag_setado_NaoTermB){
-				printf("Salvando NTB como: %c\n",ch);
 				naoTermB = ch;
 				flag_setado_NaoTermB = 1;
 			}
@@ -186,11 +165,11 @@ void carregaAmostras(){
 }
 
 void notificarErroSintaxe(){
-	printf("\n\nA FÓRMULA DIGITADA NÃO É UMA FÓRMULA BEM FORMADA!\n\n");
+	printf("\nA FÓRMULA DIGITADA NÃO É UMA FÓRMULA BEM FORMADA!\n\n");
 }
 
 void notificarErroGramatica(){
-	printf("\n\nA FÓRMULA DIGITADA NÃO FAZ PARTE DA GRAMÁTICA!\n\n");
+	printf("\nA FÓRMULA DIGITADA NÃO FAZ PARTE DA GRAMÁTICA!\n");
 }
 
 int pop(){
@@ -239,19 +218,12 @@ void iniciaAutomato(){
     while(entrada[carret]!='\0'){
     	char trans[PROD_NUM]; //Guarda o que será empilhado
     	
-    	mostraPilha();
-    	mostraS();
-    	mostraB();
-    	getch();
-    	
-		printf("Verificando caractere: %c\n",entrada[carret]);
     	if(entrada[carret] == pilha[topo]){
     		read();
 		} else{
-			int transicao;
-			printf("Buscando transição...\n"); //Deve-se verificar se a transição é pra ser buscada no vetor 'S' ou no vetor 'B'
+			int transicao; //Guarda a posição da transição que será usada
+			//Deve-se verificar se a transição é pra ser buscada no vetor 'S' ou no vetor 'B'
 			if(pilha[topo]==naoTermB){ //Verifica se o que está no topo da pilha é o segundo não-terminal
-				printf("NÃO TERMINAL 2!\n");
 				transicao = buscaTransicaoB(entrada[carret]); //Busca uma produção com o segundo não-terminal
 				if(transicao == -1){
 					notificarErroGramatica();
@@ -261,7 +233,6 @@ void iniciaAutomato(){
 				}
 				
 			} else { //senão for o segundo não-terminal, assume-se que é o primeiro não-terminal
-				printf("NÃO TERMINAL 1!\n");
 				transicao = buscaTransicaoS(entrada[carret]); //Busca uma produção com o primeiro não-terminal
 				if(transicao == -1){
 					notificarErroGramatica();
@@ -270,26 +241,19 @@ void iniciaAutomato(){
 					strcpy(trans,S[transicao]);
 				}
 			}
-			
-			printf("Transição Nº %d\n",transicao);
-			printf("Transição selecionada: %s\n",trans);
 
-				int i;
-				printf("Removendo %c do tipo e...\n",pilha[topo]);
-				if(pop()){
-					for(i=strlen(trans)-1;i>=0;i--){
-					push(trans[i]);
-					printf("Fazendo push do %c\n",trans[i]);
-					}
-				} else {
-					break;
+			int i;
+			if(pop()){
+				for(i=strlen(trans)-1;i>=0;i--){
+				push(trans[i]);
 				}
-				
+			} else {
+				break;
+			}
 		}
-
     }
     if(empty() && carret == strlen(entrada)){ //Se a pilha estiver vazia e toda a entrada já tiver sido lida...
-		printf("\n\nFÓRMULA BEM FORMADA ACEITA!\n\n");
+		printf("\nFÓRMULA BEM FORMADA ACEITA!\n\n");
 	} else {
 		notificarErroSintaxe();
 	}
