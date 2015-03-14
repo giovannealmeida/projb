@@ -8,61 +8,78 @@
 #define REG_TAM 1024 //Tamanho máximo de quantidade de registros de transições
 #define TRANS_TAM 3 //Tamanho máximo de nome das transições
 #define PROD_NUM 10 //Número de transições E símbolos (vetores 'S' e 'B')
+#define AMOSTRA_NUM 1024 // Número de amostras
 
 //Protótipos de funções
-int carregaProd(); //Carrega arquivos de produções
-char inicializaProd(); //Inicializa os vetores de produções 'S' e 'B' e adiciona no topo da pilha o primeiro caractere não terminal
-void mostraS(); //Mostra a vetor de símbolos 'S'
-void mostraB(); //Mostra a vetor de conectivos 'B'
+char inicializaProd(void); //Inicializa os vetores de produções 'S' e 'B' e adiciona no topo da pilha o primeiro caractere não terminal
+void mostraS(void); //Mostra a vetor de símbolos 'S'
+void mostraB(void); //Mostra a vetor de conectivos 'B'
 int buscaTransicaoS(char c); //Retorna a posição de um "transição" no vetor 'S' que deve ser empilhada
 int buscaTransicaoB(char c); //Retorna a posição de um "transição" no vetor 'B' que deve ser empilhada
-int pegaEntrada(); //Pega a cadeia de entrada
-void mostraPilha(); //Exibe a pilha
-void mostraEntrada(); //Exibe a cadeia de entrada
-void mostraMenu(); //Exibe o menu principal
-void notificarErroSintaxe(); //Notifica erro de sintaxe. A formula não é uma WFF
-void notificarErroGramatica(); //Notifica erro de gramática. Algum símbolo não faz parte do alfabeto
-int pop(); //Remove o elemento do topo da pilha
+int pegaEntrada(void); //Pega a cadeia de entrada
+void mostraPilha(void); //Exibe a pilha
+void mostraEntrada(void); //Exibe a cadeia de entrada
+void notificarErroSintaxe(void); //Notifica erro de sintaxe. A formula não é uma WFF
+void notificarErroGramatica(void); //Notifica erro de gramática. Algum símbolo não faz parte do alfabeto
+int pop(void); //Remove o elemento do topo da pilha
 int push(char e); //Insere um elemento no topo da pilha
-int empty(); //Retorna 1 se a pilha estiver vazia e 0 caso contrário
-char read(); //Consome o elemento atual da entrada e faz pop na pilha
-void init(); //Inicializa variáveis e vetores
-void iniciaAutomato(); //Inicia a verificação de sintaxe
+int empty(void); //Retorna 1 se a pilha estiver vazia e 0 caso contrário
+char read(void); //Consome o elemento atual da entrada e faz pop na pilha
+void init(void); //Inicializa variáveis e vetores
+void iniciaAutomato(void); //Inicia a verificação de sintaxe
 
 //Variáveis globais
-char S[PROD_NUM][PROD_NUM], B[PROD_NUM][PROD_NUM], naoTermB;
+char S[PROD_NUM][PROD_NUM], B[PROD_NUM][PROD_NUM], naoTermS, naoTermB;
 int flag_setado_NaoTermB = 0; //Flag que determina se o símbolo não terminal B já foi setado
 char pilha[PILHA_TAM]; //Pilha
 char entrada[PILHA_TAM]; //Cadeia de entrada
-int reg_carret = 0; //Guarda a posição do cursor que varrerá os registros de transição
-int op = -1; //Recebe a opção do usuário no menu principal
 int topo = -1; //Guarda o topo da pilha
 int carret = -1; //Guarda a posição do cursor que varrerá a antrada
 FILE *amostra, *resultados; //Arquivos de amostra e do resultado da análise
 FILE *prod; //Arquivo de produções
 int flag_escrevendo = -1; //1 se o resultado estiver sendo escrito num arquivo externo
 int carret_amostra = -1; //Carret que percorrerá o arquivo de amostras
-int num_amostras = 1024; //Numero de amostra
 
-int main()
+int main(int argc, const char* argv[])
 {
     setlocale(LC_ALL, "Portuguese"); //Permite acentuação
     
-    carregaProd();
-    while(pegaEntrada())
-		iniciaAutomato();
+    if((prod = fopen(argv[1],"r")) && (argc == 2)){ //Foi carregado somente o arquivo de produções
+    	flag_escrevendo = 0; //Desabilita escrita
+		printf("\n-> Arquivo carregado: %s\n",argv[1]);
+		while(pegaEntrada())
+			iniciaAutomato();
+	} else {
+		if((argc == 3) && (prod = fopen(argv[1],"r"))){ //Foi carregado um arquivo de produções e um de amostra
+			printf("\n-> Arquivo de produções carregado: %s\n",argv[1]);
+			flag_escrevendo = 1; //Habilita escrita
+			if((amostra = fopen(argv[2],"r"))){
+				printf("-> Arquivo de amostras carregado: %s\n",argv[2]);
+				char nome_arquivo_resultado[] = "resultado-";
+				strcat(nome_arquivo_resultado,argv[2]);
+				printf("-> Arquivo de resultados: %s\n",nome_arquivo_resultado);
+				resultados = fopen(nome_arquivo_resultado,"w"); //Cria arquivo para escrever resultados
+				for(carret_amostra=0;carret_amostra<AMOSTRA_NUM;carret_amostra++){
+        			fscanf(amostra,"%s ",entrada);
+        			iniciaAutomato();
+    			}
+   				fclose(amostra);
+				fclose(resultados);
+				printf("\nAnálise realizada com sucesso!\n\n");
+				exit(1);
+			}
+			else{
+				printf("\nO arquivo de amostras não pôde ser encontrado!\nCertifique-se de que o arquivo se encontra no mesmo diretório do analisador\n");
+			}
+		}
+	}
 
+	fclose(prod);
     return 0;
 }
 
-int carregaProd(){
-	if(!(prod = fopen("prod.txt","r"))){
-		return 0;
-	} else {return 1;}
-}
-
 char inicializaProd(){
-	char naoTermS,ch,auxString[PILHA_TAM];
+	char ch,auxString[PILHA_TAM];
 	int i,j=0;
 	rewind(prod); //Volta o ponteiro para o início do arquivo (colocado aqui porque essa função é chamada toda vez que uma cadeia de entrada é analisada)
 	naoTermS = fgetc(prod); //Pega o primeiro caractere do arquivo, supostamente o não-terminal inicial
@@ -103,7 +120,7 @@ void mostraB(){
 int buscaTransicaoS(char c){
 	int i;
 	for(i=0; i<PROD_NUM; i++){
-		if(entrada[carret]==S[i][0]){
+		if(c == S[i][0]){
 			return i;
 		}
 	}
@@ -113,7 +130,7 @@ int buscaTransicaoS(char c){
 int buscaTransicaoB(char c){
 	int i;
 	for(i=0; i<PROD_NUM; i++){
-		if(entrada[carret]==B[i][0]){
+		if(c == B[i][0]){
 			return i;
 		}
 	}
@@ -139,37 +156,22 @@ void mostraEntrada(){
     printf("Entrada: %s",entrada);
 }
 
-void mostraMenu(){
-	printf("O que deseja fazer?\n\n1 = Carregar arquivo de amostras de fórmulas\n2 = Inserir fórmulas\n");
-	scanf("%d",&op);
-}
-
-void carregaAmostras(){
-	
-    resultados = fopen("resultados.txt","w");
-    
-    if(!(amostra = fopen("amostra.txt","r"))){
-	    printf("\nO arquivo de amostras não pôde ser encontrado!\nCertifique-se de que o arquivo \"amostra.txt\" se encontra no mesmo diretório do analisador\n");
-	    fprintf(resultados, "FALHA AO CARREGAR O ARQUIVO DE AMOSTRAS");
-	} else {
-	   for(carret_amostra=0;carret_amostra<num_amostras;carret_amostra++){
-        fscanf(amostra,"%s ",entrada);
-        iniciaAutomato();
-    	}
-	}
-	fclose(amostra);
-	fclose(resultados);
-	printf("\nAnálise realizada com sucesso!\n\n");
-	system("pause");
-	exit(1);
-}
-
 void notificarErroSintaxe(){
-	printf("\nA FÓRMULA DIGITADA NÃO É UMA FÓRMULA BEM FORMADA!\n\n");
+	if(flag_escrevendo){
+		fprintf(resultados, "%s - A FÓRMULA DIGITADA NÃO É UMA FÓRMULA BEM FORMADA!\n", entrada);
+	}
+	else{
+		printf("\nA FÓRMULA DIGITADA NÃO É UMA FÓRMULA BEM FORMADA!\n\n");
+	}
 }
 
 void notificarErroGramatica(){
-	printf("\nA FÓRMULA DIGITADA NÃO FAZ PARTE DA GRAMÁTICA!\n");
+	if(flag_escrevendo){
+		fprintf(resultados, "%s - A FÓRMULA DIGITADA NÃO FAZ PARTE DA GRAMÁTICA!\n", entrada);
+	}
+	else{
+		printf("\nA FÓRMULA DIGITADA NÃO FAZ PARTE DA GRAMÁTICA!\n\n");
+	}
 }
 
 int pop(){
@@ -199,31 +201,28 @@ char read(){
         carret++;
         return c;
     }
-    return ;
-}
-
-int tamanhoPilha(){
-    return strlen(pilha);
+    return ' ';
 }
 
 void init(){
-	reg_carret = 0; //Ajusta o cursor do registro de transições
     pilha[0] = inicializaProd(); //Inicia a pilha com o primeiro caractere não terminal do arquivo
     topo = 0; // Ajusta o topo da pilha
     carret = 0; //Ajusta o cursor para o início da entrada
 }
 
 void iniciaAutomato(){
-    init();
+    int i;
+	init();
+    
     while(entrada[carret]!='\0'){
-    	char trans[PROD_NUM]; //Guarda o que será empilhado
+    	char trans[PROD_NUM]; //Guarda a cadeia que será empilhada
     	
-    	if(entrada[carret] == pilha[topo]){
+    	if((entrada[carret] == pilha[topo]) && (entrada[carret] != naoTermS) && (entrada[carret] != naoTermB)){
     		read();
 		} else{
 			int transicao; //Guarda a posição da transição que será usada
 			//Deve-se verificar se a transição é pra ser buscada no vetor 'S' ou no vetor 'B'
-			if(pilha[topo]==naoTermB){ //Verifica se o que está no topo da pilha é o segundo não-terminal
+			if(pilha[topo]==naoTermB){ //Verifica se o que está no topo da pilha é o segundo não-terminal (B)
 				transicao = buscaTransicaoB(entrada[carret]); //Busca uma produção com o segundo não-terminal
 				if(transicao == -1){
 					notificarErroGramatica();
@@ -232,7 +231,7 @@ void iniciaAutomato(){
 					strcpy(trans,B[transicao]);
 				}
 				
-			} else { //senão for o segundo não-terminal, assume-se que é o primeiro não-terminal
+			} else { //senão for o segundo não-terminal, assume-se que é o primeiro não-terminal (S)
 				transicao = buscaTransicaoS(entrada[carret]); //Busca uma produção com o primeiro não-terminal
 				if(transicao == -1){
 					notificarErroGramatica();
@@ -242,7 +241,6 @@ void iniciaAutomato(){
 				}
 			}
 
-			int i;
 			if(pop()){
 				for(i=strlen(trans)-1;i>=0;i--){
 				push(trans[i]);
@@ -253,8 +251,13 @@ void iniciaAutomato(){
 		}
     }
     if(empty() && carret == strlen(entrada)){ //Se a pilha estiver vazia e toda a entrada já tiver sido lida...
-		printf("\nFÓRMULA BEM FORMADA ACEITA!\n\n");
+		if(flag_escrevendo){
+	    	fprintf(resultados,"%s - FÓRMULA BEM FORMADA ACEITA!\n",entrada);
+		} else {
+			printf("\nFÓRMULA BEM FORMADA ACEITA!\n\n");
+		}
 	} else {
-		notificarErroSintaxe();
+		if(empty() && !(carret == strlen(entrada)))
+			notificarErroSintaxe();
 	}
 }
