@@ -19,8 +19,7 @@ int buscaTransicaoB(char c); //Retorna a posição de um "transição" no vetor 'B' 
 int pegaEntrada(void); //Pega a cadeia de entrada
 void mostraPilha(void); //Exibe a pilha
 void mostraEntrada(void); //Exibe a cadeia de entrada
-void notificarErroSintaxe(void); //Notifica erro de sintaxe. A formula não é uma WFF
-void notificarErroGramatica(void); //Notifica erro de gramática. Algum símbolo não faz parte do alfabeto
+void notificarErroGramatica(void); //Notifica erro de gramática.
 int pop(void); //Remove o elemento do topo da pilha
 int push(char e); //Insere um elemento no topo da pilha
 int empty(void); //Retorna 1 se a pilha estiver vazia e 0 caso contrário
@@ -156,15 +155,6 @@ void mostraEntrada(){
     printf("Entrada: %s",entrada);
 }
 
-void notificarErroSintaxe(){
-	if(flag_escrevendo){
-		fprintf(resultados, "%s - A FÓRMULA DIGITADA NÃO É UMA FÓRMULA BEM FORMADA!\n", entrada);
-	}
-	else{
-		printf("\nA FÓRMULA DIGITADA NÃO É UMA FÓRMULA BEM FORMADA!\n\n");
-	}
-}
-
 void notificarErroGramatica(){
 	if(flag_escrevendo){
 		fprintf(resultados, "%s - A FÓRMULA DIGITADA NÃO FAZ PARTE DA GRAMÁTICA!\n", entrada);
@@ -217,7 +207,7 @@ void iniciaAutomato(){
     while(entrada[carret]!='\0'){
     	char trans[PROD_NUM]; //Guarda a cadeia que será empilhada
     	
-    	if((entrada[carret] == pilha[topo]) && (entrada[carret] != naoTermS) && (entrada[carret] != naoTermB)){
+    	if((entrada[carret] == pilha[topo]) && (entrada[carret] != naoTermS) && (entrada[carret] != naoTermB)){ //Se o caractere atual está no topo e não é nenhum dos sílbolos não terminais...
     		read();
 		} else{
 			int transicao; //Guarda a posição da transição que será usada
@@ -226,7 +216,7 @@ void iniciaAutomato(){
 				transicao = buscaTransicaoB(entrada[carret]); //Busca uma produção com o segundo não-terminal
 				if(transicao == -1){
 					notificarErroGramatica();
-					break;
+					return;
 				} else {
 					strcpy(trans,B[transicao]);
 				}
@@ -235,18 +225,18 @@ void iniciaAutomato(){
 				transicao = buscaTransicaoS(entrada[carret]); //Busca uma produção com o primeiro não-terminal
 				if(transicao == -1){
 					notificarErroGramatica();
-					break;
+					return;
 				} else {
 					strcpy(trans,S[transicao]);
 				}
 			}
 
-			if(pop()){
+			if(pop()){ //Troca o topo da pilha pela transição selecionada
 				for(i=strlen(trans)-1;i>=0;i--){
-				push(trans[i]);
+					push(trans[i]);
 				}
 			} else {
-				break;
+				return;
 			}
 		}
     }
@@ -257,7 +247,7 @@ void iniciaAutomato(){
 			printf("\nFÓRMULA BEM FORMADA ACEITA!\n\n");
 		}
 	} else {
-		if(empty() && !(carret == strlen(entrada)))
-			notificarErroSintaxe();
+		if(!empty())
+			notificarErroGramatica();
 	}
 }
