@@ -7,7 +7,7 @@
 #define PILHA_TAM 8194 //Tamanho da pilha
 #define TRANS_TAM 3 //Tamanho máximo de nome das transições
 #define PROD_NUM 10 //Número de transições E símbolos (vetores 'S' e 'B')
-#define AMOSTRA_NUM 1024 // Número de amostras
+#define AMOSTRA_NUM 4096 // Número de amostras
 
 //Protótipos de funções
 char inicializaProd(void); //Inicializa os vetores de produções 'S' e 'B' e adiciona no topo da pilha o primeiro caractere não terminal
