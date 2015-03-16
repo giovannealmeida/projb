@@ -4,8 +4,7 @@
 #include <string.h>
 #include <locale.h>
 
-#define PILHA_TAM 256 //Tamanho da pilha
-#define REG_TAM 1024 //Tamanho máximo de quantidade de registros de transições
+#define PILHA_TAM 8194 //Tamanho da pilha
 #define TRANS_TAM 3 //Tamanho máximo de nome das transições
 #define PROD_NUM 10 //Número de transições E símbolos (vetores 'S' e 'B')
 #define AMOSTRA_NUM 1024 // Número de amostras
@@ -205,6 +204,7 @@ void iniciaAutomato(){
 	init();
     
     while(entrada[carret]!='\0'){
+    	
     	char trans[PROD_NUM]; //Guarda a cadeia que será empilhada
     	
     	if((entrada[carret] == pilha[topo]) && (entrada[carret] != naoTermS) && (entrada[carret] != naoTermB)){ //Se o caractere atual está no topo e não é nenhum dos sílbolos não terminais...
@@ -222,32 +222,41 @@ void iniciaAutomato(){
 				}
 				
 			} else { //senão for o segundo não-terminal, assume-se que é o primeiro não-terminal (S)
-				transicao = buscaTransicaoS(entrada[carret]); //Busca uma produção com o primeiro não-terminal
-				if(transicao == -1){
-					notificarErroGramatica();
-					return;
-				} else {
-					strcpy(trans,S[transicao]);
+				if(pilha[topo]==naoTermS){
+					transicao = buscaTransicaoS(entrada[carret]); //Busca uma produção com o primeiro não-terminal
+					if(transicao == -1){
+						notificarErroGramatica();
+						return;
+					} else {
+						strcpy(trans,S[transicao]);
+					}
 				}
 			}
-
-			if(pop()){ //Troca o topo da pilha pela transição selecionada
+			
+			//Troca o topo da pilha pela transição selecionada
+			if((pilha[topo] == naoTermS || pilha[topo] == naoTermB)){ //No topo deve ter algum não terminal para que se aplique a produção	
+				pop();
 				for(i=strlen(trans)-1;i>=0;i--){
 					push(trans[i]);
 				}
 			} else {
+				notificarErroGramatica();
 				return;
 			}
 		}
     }
-    if(empty() && carret == strlen(entrada)){ //Se a pilha estiver vazia e toda a entrada já tiver sido lida...
-		if(flag_escrevendo){
-	    	fprintf(resultados,"%s - FÓRMULA BEM FORMADA ACEITA!\n",entrada);
+    
+    if(empty()){ //Se a pilha estiver vazia...
+		if(carret == strlen(entrada)){ //Se toda a cadeia foi lida...
+			if(flag_escrevendo){
+		    	fprintf(resultados,"%s - FÓRMULA BEM FORMADA ACEITA!\n",entrada);
+			} else {
+				printf("\nFÓRMULA BEM FORMADA ACEITA!\n\n");
+			}
 		} else {
-			printf("\nFÓRMULA BEM FORMADA ACEITA!\n\n");
+			notificarErroGramatica();
 		}
 	} else {
-		if(!empty())
-			notificarErroGramatica();
+		notificarErroGramatica();
 	}
 }
